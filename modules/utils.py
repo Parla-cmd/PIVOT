@@ -14,6 +14,29 @@ from rich.text import Text
 
 console = Console(force_terminal=True, highlight=False, legacy_windows=False)
 
+# ── proxy / Tor support ────────────────────────────────────────────────────────
+_PROXY: dict | None = None
+
+
+def set_proxy(proxy_url: str):
+    """
+    Set a global proxy for all fetch() calls.
+    Examples:
+      set_proxy("socks5h://127.0.0.1:9050")   # Tor
+      set_proxy("http://127.0.0.1:8080")       # Burp / HTTP proxy
+      set_proxy("")                             # disable
+    """
+    global _PROXY
+    if proxy_url:
+        _PROXY = {"http": proxy_url, "https": proxy_url}
+        console.print(f"  [dim]Proxy active:[/dim] [bold]{proxy_url}[/bold]")
+    else:
+        _PROXY = None
+
+
+def get_proxy() -> dict | None:
+    return _PROXY
+
 
 def safe(text: str) -> str:
     """Replace characters that can't be printed in cp1252 terminals."""
@@ -44,11 +67,16 @@ def get_headers():
 
 
 def fetch(url: str, timeout: int = 10, retries: int = 2) -> requests.Response | None:
-    """GET request with retry logic and polite delay."""
+    """GET request with retry logic, polite delay, and optional proxy."""
     for attempt in range(retries):
         try:
             time.sleep(random.uniform(0.5, 1.5))
-            resp = requests.get(url, headers=get_headers(), timeout=timeout)
+            resp = requests.get(
+                url,
+                headers=get_headers(),
+                timeout=timeout,
+                proxies=_PROXY,
+            )
             resp.raise_for_status()
             return resp
         except requests.RequestException as e:

@@ -33,6 +33,17 @@ def active() -> bool:
     return _instance is not None
 
 
+def get_all() -> list[dict]:
+    """Return all findings as a flat list with _section key injected."""
+    if not _instance:
+        return []
+    rows = []
+    for section, entries in _instance._sections.items():
+        for entry in entries:
+            rows.append({**entry, "_section": section})
+    return rows
+
+
 # ---- Report class -----------------------------------------------------------
 
 class Report:

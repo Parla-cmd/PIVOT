@@ -5,3 +5,10 @@ dnspython>=2.4.0
 python-whois>=0.9.4
 lxml>=4.9.0
 fake-useragent>=1.4.0
+# Graph visualisation
+networkx>=3.2
+pyvis>=0.3.2
+# Windows readline (optional, enables REPL history)
+pyreadline3>=3.4.1; sys_platform == "win32"
+# SOCKS proxy support (for Tor)
+PySocks>=1.7.1

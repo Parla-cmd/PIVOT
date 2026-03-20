@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Sweden OSINT Tool
------------------
+Sweden OSINT Tool — PIVOT
+--------------------------
 An educational open-source intelligence aggregator for Swedish targets.
 Uses only publicly accessible sources and APIs.
 
@@ -15,10 +15,20 @@ Usage:
   python main.py news      --query "Anna Svensson Stockholm"
   python main.py geo       --address "Storgatan 1, Stockholm"
   python main.py github    --username "johndoe" [--email x] [--name x]
+  python main.py wayback   --url "example.se" [--limit 30]
+  python main.py folkbok   --name "Anna Svensson" [--city Stockholm]
+  python main.py vehicle   --plate "ABC123"
   python main.py correlate --target "070-123 45 67"
+  python main.py watch     --target "anna@example.se" [--check]
+  python main.py watch     --list
+  python main.py repl
   python main.py all       --name "Anna Svensson" --email "a@b.se" ...
 
-Add --output report.html or --output report.json to any command to save results.
+Flags:
+  --output report.html     Save results as HTML
+  --output report.json     Save results as JSON
+  --graph  graph.html      Also export entity relationship graph
+  --proxy  socks5h://...   Route all requests through proxy / Tor
 """
 
 import argparse
@@ -57,11 +67,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output", metavar="FILE",
-        help="Save results to file. Use .json or .html extension. "
-             "Example: --output report.html"
+        help="Save results to file (.json or .html). Example: --output report.html"
+    )
+    parser.add_argument(
+        "--graph", metavar="FILE",
+        help="Export entity graph as interactive HTML. Example: --graph graph.html"
+    )
+    parser.add_argument(
+        "--proxy", metavar="URL", default="",
+        help="Route all requests through proxy. "
+             "Examples: socks5h://127.0.0.1:9050  http://127.0.0.1:8080"
     )
 
-    subparsers = parser.add_subparsers(dest="module", required=True)
+    subparsers = parser.add_subparsers(dest="module", required=False)
 
     # Person
     p_person = subparsers.add_parser("person", help="Search for a person")
@@ -122,11 +140,36 @@ def build_parser() -> argparse.ArgumentParser:
     p_paste.add_argument("--target", required=True,
                          help='Email or phone number, e.g. "user@domain.se" or "070-123 45 67"')
 
+    # Wayback Machine
+    p_wayback = subparsers.add_parser("wayback", help="Check Internet Archive snapshots")
+    p_wayback.add_argument("--url", required=True, help="Domain or full URL")
+    p_wayback.add_argument("--limit", type=int, default=30)
+
+    # Folkbokföring / Swedish registry
+    p_folkbok = subparsers.add_parser("folkbok", help="Swedish public registry lookup")
+    p_folkbok.add_argument("--name", default="")
+    p_folkbok.add_argument("--city", default="")
+    p_folkbok.add_argument("--pnr", default="", help="Personnummer")
+
+    # Vehicle (Fordonsregistret)
+    p_vehicle = subparsers.add_parser("vehicle", help="Swedish vehicle registration lookup")
+    p_vehicle.add_argument("--plate", required=True, help="Registration plate e.g. ABC123")
+
     # Correlate
     p_correlate = subparsers.add_parser(
         "correlate", help="Full profile from phone or email"
     )
     p_correlate.add_argument("--target", required=True)
+
+    # Watch / diff
+    p_watch = subparsers.add_parser("watch", help="Save baseline and detect changes over time")
+    p_watch.add_argument("--target", default="", help="Email or phone to monitor")
+    p_watch.add_argument("--check", action="store_true",
+                         help="Re-scan and show what changed since baseline")
+    p_watch.add_argument("--list", action="store_true", help="List all monitored targets")
+
+    # REPL
+    subparsers.add_parser("repl", help="Start interactive REPL shell")
 
     # All-in-one
     p_all = subparsers.add_parser("all", help="Run all applicable modules")
@@ -154,6 +197,49 @@ def _target_label(args) -> str:
 
 def run_module(args):
     mod = args.module
+
+    if mod == "repl":
+        from modules.repl import run
+        run()
+        return
+
+    if mod == "wayback":
+        from modules.wayback import run
+        snapshots = run(url=args.url, limit=args.limit)
+        if _reporter.active():
+            for s in snapshots:
+                _reporter.add("Wayback Machine", {
+                    "url":        s.get("original", args.url),
+                    "date":       s.get("date", ""),
+                    "status":     s.get("statuscode", ""),
+                    "wayback_url": s.get("wayback_url", ""),
+                    "source":     "archive.org",
+                })
+        return
+
+    if mod == "folkbok":
+        if not args.name:
+            console.print("[red]Provide --name[/red]")
+            sys.exit(1)
+        from modules.folkbokforing import run_person
+        run_person(name=args.name, city=args.city, personnummer=args.pnr)
+        return
+
+    if mod == "vehicle":
+        from modules.folkbokforing import run_vehicle
+        run_vehicle(plate=args.plate)
+        return
+
+    if mod == "watch":
+        from modules.watcher import run, run_list
+        if getattr(args, "list", False):
+            run_list()
+        elif args.target:
+            run(target=args.target, check=args.check,
+                output=getattr(args, "output", "") or "")
+        else:
+            console.print("[red]Provide --target or --list[/red]")
+        return
 
     if mod == "harvest":
         from modules.email_harvest import run
@@ -338,25 +424,45 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
+    # Default to REPL if no subcommand given
+    if not args.module:
+        args.module = "repl"
+
     if not getattr(args, "no_disclaimer", False):
         if not confirm_usage():
             console.print("[red]Aborted.[/red]")
             sys.exit(0)
         console.print()
 
+    # Apply proxy before any HTTP calls
+    proxy = getattr(args, "proxy", "")
+    if proxy:
+        from modules.utils import set_proxy
+        set_proxy(proxy)
+
     # Initialize report if --output requested
-    if args.output:
+    if getattr(args, "output", ""):
         _reporter.init(target=_target_label(args))
         console.print(f"  [dim]Report output: {args.output}[/dim]\n")
 
     run_module(args)
 
-    console.print("\n[dim]--- Scan complete ---[/dim]\n")
+    if args.module not in ("repl",):
+        console.print("\n[dim]--- Scan complete ---[/dim]\n")
 
     # Save report
-    if args.output:
+    if getattr(args, "output", "") and _reporter.active():
         _reporter.save(args.output)
         console.print(f"  [bold green]Report saved:[/bold green] {args.output}\n")
+
+    # Export graph
+    if getattr(args, "graph", "") and _reporter.active():
+        from modules.graph import build_from_reporter
+        build_from_reporter(
+            _reporter.get_all(),
+            args.graph,
+            target=_target_label(args),
+        )
 
 
 if __name__ == "__main__":
