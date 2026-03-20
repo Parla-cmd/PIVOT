@@ -33,14 +33,20 @@ def active() -> bool:
     return _instance is not None
 
 
+def reset():
+    """Clear current report instance (used between GUI scans)."""
+    global _instance
+    _instance = None
+
+
 def get_all() -> list[dict]:
-    """Return all findings as a flat list with _section key injected."""
+    """Return all findings as [{section, data}] for GUI rendering."""
     if not _instance:
         return []
     rows = []
     for section, entries in _instance._sections.items():
         for entry in entries:
-            rows.append({**entry, "_section": section})
+            rows.append({"section": section, "data": entry})
     return rows
 
 
