@@ -157,6 +157,46 @@ def build_parser() -> argparse.ArgumentParser:
     p_wayback.add_argument("--url", required=True, help="Domain or full URL")
     p_wayback.add_argument("--limit", type=int, default=30)
 
+    # SSL Certificate
+    p_ssl = subparsers.add_parser("ssl", help="Inspect SSL/TLS certificate for a domain")
+    p_ssl.add_argument("--domain", required=True, help="Target domain, e.g. example.com")
+
+    # HTTP Security Headers
+    p_headers = subparsers.add_parser("headers", help="Audit HTTP security headers")
+    p_headers.add_argument("--url", required=True, help="URL or domain to check")
+
+    # Robots / Sitemap
+    p_robots = subparsers.add_parser("robots", help="Fetch robots.txt and sitemap.xml")
+    p_robots.add_argument("--domain", required=True, help="Target domain")
+
+    # DNSBL Blacklist
+    p_dnsbl = subparsers.add_parser("dnsbl", help="Check IP against DNSBL blacklists")
+    p_dnsbl.add_argument("--ip", required=True, help="IPv4 address to check")
+
+    # Favicon Hash
+    p_favicon = subparsers.add_parser("favicon", help="Compute favicon MMH3 hash (Shodan)")
+    p_favicon.add_argument("--url", required=True, help="Site URL or domain")
+
+    # Wayback Diff
+    p_wbdiff = subparsers.add_parser("waybackdiff", help="Diff oldest vs newest Wayback snapshot")
+    p_wbdiff.add_argument("--url", required=True, help="Target URL")
+
+    # File Metadata
+    p_filemeta = subparsers.add_parser("filemeta", help="Extract metadata and hashes from a file")
+    p_filemeta.add_argument("--file", required=True, help="Path to the file")
+    p_filemeta.add_argument("--no-hashes", action="store_true", help="Skip hash computation")
+
+    # Email Header Analysis
+    p_emailhdr = subparsers.add_parser("emailheader", help="Analyze raw email headers")
+    p_emailhdr.add_argument("--file", default="",
+                            help="Path to a file containing the raw headers")
+    p_emailhdr.add_argument("--headers", default="",
+                            help="Raw header string (alternative to --file)")
+
+    # Password Strength
+    p_pass = subparsers.add_parser("passcheck", help="Rate password strength against wordlist")
+    p_pass.add_argument("--password", required=True, help="Password string to evaluate")
+
     # Folkbokföring / Swedish registry
     p_folkbok = subparsers.add_parser("folkbok", help="Swedish public registry lookup")
     p_folkbok.add_argument("--name", default="")
@@ -227,6 +267,62 @@ def run_module(args: argparse.Namespace) -> None:
                     "wayback_url": s.get("wayback_url", ""),
                     "source":     "archive.org",
                 })
+        return
+
+    if mod == "ssl":
+        from modules.ssl_tools import run_ssl
+        run_ssl(args.domain)
+        return
+
+    if mod == "headers":
+        from modules.ssl_tools import run_security_headers
+        run_security_headers(args.url)
+        return
+
+    if mod == "robots":
+        from modules.ssl_tools import run_robots_sitemap
+        run_robots_sitemap(args.domain)
+        return
+
+    if mod == "dnsbl":
+        from modules.ssl_tools import run_dnsbl
+        run_dnsbl(args.ip)
+        return
+
+    if mod == "favicon":
+        from modules.ssl_tools import run_favicon_hash
+        run_favicon_hash(args.url)
+        return
+
+    if mod == "waybackdiff":
+        from modules.ssl_tools import run_wayback_diff
+        run_wayback_diff(args.url)
+        return
+
+    if mod == "filemeta":
+        from modules.file_intel import run as filemeta_run
+        filemeta_run(args.file, show_hashes=not args.no_hashes)
+        return
+
+    if mod == "emailheader":
+        from modules.email_header import run as emailhdr_run
+        if args.file:
+            try:
+                raw = open(args.file, encoding="utf-8", errors="replace").read()
+            except Exception as exc:
+                console.print(f"[red]Cannot read file:[/red] {exc}")
+                sys.exit(1)
+        elif args.headers:
+            raw = args.headers
+        else:
+            console.print("[red]Provide --file or --headers[/red]")
+            sys.exit(1)
+        emailhdr_run(raw)
+        return
+
+    if mod == "passcheck":
+        from modules.password_check import run as pass_run
+        pass_run(args.password)
         return
 
     if mod == "folkbok":

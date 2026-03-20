@@ -18,3 +18,11 @@ pyreadline3>=3.4.1; sys_platform == "win32"
 PySocks>=1.7.1
 cloudscraper>=1.2.71
 playwright>=1.40.0
+# ClatScope modules
+mmh3>=4.0.0
+PyPDF2>=3.0.0
+openpyxl>=3.1.0
+python-docx>=1.1.0
+python-pptx>=0.6.23
+Pillow>=10.0.0
+tinytag>=1.9.0

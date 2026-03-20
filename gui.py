@@ -105,6 +105,35 @@ MODULES_META = {
     "correlate": {"label": "Korrelera",     "icon": "🔗", "fields": [
         {"id": "target","label": "Telefon / E-post","type": "text", "placeholder": "070-123 45 67", "required": True},
     ]},
+    # ── ClatScope modules ──────────────────────────────────────────────────────
+    "ssl":        {"label": "SSL-certifikat", "icon": "🔒", "fields": [
+        {"id": "domain","label": "Domännamn",  "type": "text", "placeholder": "example.com", "required": True},
+    ]},
+    "headers":    {"label": "Säkerhetshuvuden", "icon": "🛡️", "fields": [
+        {"id": "url",   "label": "URL / Domän", "type": "text", "placeholder": "https://example.com", "required": True},
+    ]},
+    "robots":     {"label": "Robots / Sitemap", "icon": "🤖", "fields": [
+        {"id": "domain","label": "Domännamn",  "type": "text", "placeholder": "example.com", "required": True},
+    ]},
+    "dnsbl":      {"label": "DNSBL Svartlista", "icon": "🚫", "fields": [
+        {"id": "ip",    "label": "IP-adress",   "type": "text", "placeholder": "1.2.3.4", "required": True},
+    ]},
+    "favicon":    {"label": "Favicon Hash",    "icon": "🖼️", "fields": [
+        {"id": "url",   "label": "URL / Domän", "type": "text", "placeholder": "https://example.com", "required": True},
+    ]},
+    "waybackdiff":{"label": "Wayback Diff",    "icon": "📜", "fields": [
+        {"id": "url",   "label": "URL",          "type": "text", "placeholder": "https://example.com", "required": True},
+    ]},
+    "filemeta":   {"label": "Filmetadata",     "icon": "📁", "fields": [
+        {"id": "file",  "label": "Filsökväg",   "type": "text", "placeholder": "C:/Users/.../photo.jpg", "required": True},
+        {"id": "no_hashes", "label": "Hoppa över hash", "type": "checkbox"},
+    ]},
+    "emailheader":{"label": "E-posthuvud",     "icon": "✉️", "fields": [
+        {"id": "headers","label": "Råa e-posthuvuden","type": "textarea", "placeholder": "Received: from ...\nFrom: ...", "required": True},
+    ]},
+    "passcheck":  {"label": "Lösenordsstyrka", "icon": "🔑", "fields": [
+        {"id": "password","label": "Lösenord", "type": "password", "placeholder": "••••••••", "required": True},
+    ]},
 }
 
 
@@ -160,6 +189,12 @@ def _run_module_in_thread(module: str, form: dict):
         lon=form.get("lon", ""),
         # vehicle
         plate=form.get("plate", ""),
+        # ClatScope modules
+        ip=form.get("ip", ""),
+        file=form.get("file", ""),
+        no_hashes="no_hashes" in form,
+        headers=form.get("headers", ""),
+        password=form.get("password", ""),
     )
 
     # Redirect stdout so we capture rich/print output

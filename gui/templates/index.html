@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PIVOT · Sweden OSINT</title>
+<style>
+  /* ── Reset & base ─────────────────────────────────────────── */
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0f14;--sidebar:#131620;--panel:#181b24;--card:#1e2230;
+    --border:#2a2f42;--accent:#4f8ef7;--accent2:#7c5af0;
+    --green:#3ecf8e;--red:#f75f5f;--yellow:#f7c948;--orange:#f7864a;
+    --text:#e2e6f0;--muted:#6b7394;--font:'Inter',system-ui,sans-serif;
+    --radius:10px;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;overflow:hidden}
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  .layout{display:grid;grid-template-columns:210px 1fr;grid-template-rows:52px 1fr;height:100vh}
+
+  /* ── Topbar ───────────────────────────────────────────────── */
+  .topbar{
+    grid-column:1/-1;display:flex;align-items:center;gap:14px;
+    padding:0 20px;background:var(--sidebar);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{font-size:20px;font-weight:800;letter-spacing:.05em;
+        background:linear-gradient(90deg,var(--accent),var(--accent2));
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .logo-sub{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+               box-shadow:0 0 6px var(--green);transition:background .3s}
+  .status-dot.running{background:var(--orange);box-shadow:0 0 6px var(--orange);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .status-txt{color:var(--muted);font-size:12px}
+  .btn-save{
+    background:var(--card);border:1px solid var(--border);color:var(--text);
+    padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;
+    transition:background .2s
+  }
+  .btn-save:hover{background:var(--border)}
+
+  /* ── Sidebar ──────────────────────────────────────────────── */
+  .sidebar{
+    background:var(--sidebar);border-right:1px solid var(--border);
+    overflow-y:auto;padding:10px 0;
+  }
+  .sidebar-group{padding:8px 16px 4px;color:var(--muted);font-size:10px;
+                  letter-spacing:.12em;text-transform:uppercase}
+  .mod-btn{
+    display:flex;align-items:center;gap:10px;width:100%;
+    padding:9px 16px;border:none;background:transparent;color:var(--muted);
+    cursor:pointer;text-align:left;font-size:13px;transition:all .15s;
+    border-left:3px solid transparent;
+  }
+  .mod-btn:hover{background:var(--card);color:var(--text)}
+  .mod-btn.active{
+    background:rgba(79,142,247,.08);color:var(--accent);
+    border-left-color:var(--accent);
+  }
+  .mod-icon{font-size:15px;width:20px;text-align:center}
+
+  /* ── Main area ────────────────────────────────────────────── */
+  .main{display:flex;flex-direction:column;overflow:hidden}
+
+  /* Form panel */
+  .form-panel{
+    padding:20px 24px 16px;border-bottom:1px solid var(--border);
+    background:var(--panel);min-height:110px;
+  }
+  .form-title{font-size:16px;font-weight:700;margin-bottom:14px;
+               display:flex;align-items:center;gap:8px}
+  .fields{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+  .field input[type=text],
+  .field input[type=tel],
+  .field input[type=email],
+  .field input[type=number],
+  .field input[type=password],
+  .field textarea{
+    background:var(--card);border:1px solid var(--border);color:var(--text);
+    padding:7px 11px;border-radius:7px;font-size:13px;min-width:160px;
+    outline:none;transition:border .2s;
+  }
+  .field input:focus,.field textarea:focus{border-color:var(--accent)}
+  .field textarea{min-width:320px;min-height:100px;resize:vertical;font-family:monospace;font-size:12px}
+  .field-check{flex-direction:row;align-items:center;gap:6px;padding-bottom:6px}
+  .field-check label{font-size:13px;text-transform:none;letter-spacing:0;color:var(--text)}
+  .field input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent)}
+
+  .btn-run{
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:none;color:#fff;padding:8px 20px;border-radius:8px;
+    font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;
+    white-space:nowrap;align-self:flex-end;
+  }
+  .btn-run:hover{opacity:.88}
+  .btn-run:disabled{opacity:.4;cursor:not-allowed}
+
+  /* Results panel */
+  .results{flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:10px}
+
+  /* Output log */
+  .log{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;
+    line-height:1.7;color:#9babc8;max-height:220px;overflow-y:auto;
+    white-space:pre-wrap;word-break:break-all;
+  }
+  .log:empty::before{content:'Väntar på skanning…';color:var(--muted)}
+
+  /* Finding cards */
+  .section-title{font-size:11px;color:var(--muted);letter-spacing:.1em;
+                  text-transform:uppercase;margin-top:6px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 14px;
+  }
+  .card-head{display:flex;justify-content:space-between;align-items:center;
+              margin-bottom:8px}
+  .card-tag{
+    font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    padding:2px 8px;border-radius:20px;
+  }
+  .tag-person   {background:rgba(79,142,247,.15);color:var(--accent)}
+  .tag-company  {background:rgba(124,90,240,.15);color:var(--accent2)}
+  .tag-domain   {background:rgba(62,207,142,.15);color:var(--green)}
+  .tag-phone    {background:rgba(247,201,72,.15);color:var(--yellow)}
+  .tag-email    {background:rgba(247,95,95,.15);color:var(--red)}
+  .tag-social   {background:rgba(247,134,74,.15);color:var(--orange)}
+  .tag-news     {background:rgba(79,142,247,.15);color:var(--accent)}
+  .tag-wayback  {background:rgba(62,207,142,.15);color:var(--green)}
+  .tag-default  {background:rgba(107,115,148,.15);color:var(--muted)}
+
+  .card-rows{display:flex;flex-direction:column;gap:3px}
+  .card-row{display:flex;gap:8px;font-size:12px;line-height:1.5}
+  .card-key{color:var(--muted);min-width:90px;flex-shrink:0}
+  .card-val{color:var(--text);word-break:break-all}
+  .card-val a{color:var(--accent);text-decoration:none}
+  .card-val a:hover{text-decoration:underline}
+
+  .empty-state{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:12px;color:var(--muted);padding:40px;text-align:center;
+  }
+  .empty-icon{font-size:48px;opacity:.4}
+  .empty-text{font-size:13px;line-height:1.7;max-width:320px}
+
+  /* Scrollbars */
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+  /* Save modal */
+  .modal-bg{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+    align-items:center;justify-content:center;z-index:100;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid var(--border);border-radius:14px;
+    padding:24px;min-width:320px;
+  }
+  .modal h3{margin-bottom:16px;font-size:15px}
+  .modal-btns{display:flex;gap:10px;margin-top:16px}
+  .btn-modal{
+    flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;
+    font-size:13px;font-weight:600;
+  }
+  .btn-html{background:var(--accent);color:#fff}
+  .btn-json{background:var(--card);color:var(--text);border:1px solid var(--border)}
+  .btn-cancel{background:transparent;color:var(--muted);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div>
+      <div class="logo">PIVOT</div>
+      <div class="logo-sub">Sweden OSINT Framework</div>
+    </div>
+    <div class="topbar-right">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-txt" id="statusTxt">Klar</span>
+      <button class="btn-save" onclick="openSaveModal()">⬇ Spara rapport</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-group">Person</div>
+    {% for key in ['person','folkbok','vehicle'] %}
+    <button class="mod-btn" data-mod="{{ key }}" onclick="selectModule('{{ key }}')">
+      <span class="mod-icon">{{ modules[key].icon }}</span>
+      {{ modules[key].label }}
+    </button>
+    {% endfor %}
+
+    <div class="sidebar-group">Företag & Nät</div>
+    {% for key in ['company','domain','wayback','harvest'] %}
+    <button class="mod-btn" data-mod="{{ key }}" onclick="selectModule('{{ key }}')">
+      <span class="mod-icon">{{ modules[key].icon }}</span>
+      {{ modules[key].label }}
+    </button>
+    {% endfor %}
+
+    <div class="sidebar-group">Kontakt</div>
+    {% for key in ['phone','email','paste'] %}
+    <button class="mod-btn" data-mod="{{ key }}" onclick="selectModule('{{ key }}')">
+      <span class="mod-icon">{{ modules[key].icon }}</span>
+      {{ modules[key].label }}
+    </button>
+    {% endfor %}
+
+    <div class="sidebar-group">Socialt & Kod</div>
+    {% for key in ['social','github','news','geo'] %}
+    <button class="mod-btn" data-mod="{{ key }}" onclick="selectModule('{{ key }}')">
+      <span class="mod-icon">{{ modules[key].icon }}</span>
+      {{ modules[key].label }}
+    </button>
+    {% endfor %}
+
+    <div class="sidebar-group">Aggregerat</div>
+    {% for key in ['correlate'] %}
+    <button class="mod-btn" data-mod="{{ key }}" onclick="selectModule('{{ key }}')">
+      <span class="mod-icon">{{ modules[key].icon }}</span>
+      {{ modules[key].label }}
+    </button>
+    {% endfor %}
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Form -->
+    <div class="form-panel">
+      <div class="form-title" id="formTitle">👤 Välj en modul i sidofältet</div>
+      <div class="fields" id="fieldsContainer"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">Välj en modul till vänster, fyll i formuläret och klicka <strong>Kör skanning</strong> för att starta.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Save modal -->
+<div class="modal-bg" id="saveModal">
+  <div class="modal">
+    <h3>Spara rapport</h3>
+    <p style="color:var(--muted);font-size:13px">Välj format — sparas i projektmappen.</p>
+    <div class="modal-btns">
+      <button class="btn-modal btn-html" onclick="saveReport('html')">HTML</button>
+      <button class="btn-modal btn-json" onclick="saveReport('json')">JSON</button>
+      <button class="btn-modal btn-cancel" onclick="closeSaveModal()">Avbryt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Module metadata from Jinja ─────────────────────────────────
+const MODULES = {{ modules | tojson }};
+let currentModule = null;
+let eventSource = null;
+let findingsData = [];
+
+// ── Module selection ──────────────────────────────────────────
+function selectModule(key) {
+  currentModule = key;
+  document.querySelectorAll('.mod-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mod="${key}"]`).classList.add('active');
+
+  const meta = MODULES[key];
+  document.getElementById('formTitle').textContent = meta.icon + ' ' + meta.label;
+
+  const container = document.getElementById('fieldsContainer');
+  container.innerHTML = '';
+
+  meta.fields.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.className = f.type === 'checkbox' ? 'field field-check' : 'field';
+
+    if (f.type === 'checkbox') {
+      wrap.innerHTML = `
+        <input type="checkbox" id="f_${f.id}" name="${f.id}">
+        <label for="f_${f.id}">${f.label}</label>`;
+    } else if (f.type === 'textarea') {
+      wrap.innerHTML = `
+        <label for="f_${f.id}">${f.label}${f.required ? ' *' : ''}</label>
+        <textarea id="f_${f.id}" name="${f.id}"
+                  placeholder="${f.placeholder || ''}"
+                  ${f.required ? 'required' : ''}></textarea>`;
+    } else {
+      wrap.innerHTML = `
+        <label for="f_${f.id}">${f.label}${f.required ? ' *' : ''}</label>
+        <input type="${f.type}" id="f_${f.id}" name="${f.id}"
+               placeholder="${f.placeholder || ''}"
+               ${f.required ? 'required' : ''}>`;
+    }
+    container.appendChild(wrap);
+  });
+
+  // Run button
+  const btn = document.createElement('button');
+  btn.className = 'btn-run';
+  btn.id = 'runBtn';
+  btn.textContent = '▶ Kör skanning';
+  btn.onclick = runScan;
+  container.appendChild(btn);
+
+  // Enter key submits
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') runScan(); });
+  });
+
+  // Focus first field
+  const first = container.querySelector('input:not([type=checkbox])');
+  if (first) setTimeout(() => first.focus(), 50);
+}
+
+// ── Collect form data ─────────────────────────────────────────
+function getFormData() {
+  const data = {};
+  document.querySelectorAll('#fieldsContainer input').forEach(inp => {
+    if (inp.type === 'checkbox') {
+      if (inp.checked) data[inp.name] = 'on';
+    } else if (inp.value.trim()) {
+      data[inp.name] = inp.value.trim();
+    }
+  });
+  document.querySelectorAll('#fieldsContainer textarea').forEach(ta => {
+    if (ta.value.trim()) data[ta.name] = ta.value.trim();
+  });
+  return data;
+}
+
+// ── Run scan ──────────────────────────────────────────────────
+async function runScan() {
+  if (!currentModule) return;
+  const form = getFormData();
+
+  // Clear results
+  findingsData = [];
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+
+  // Log area
+  const logEl = document.createElement('div');
+  logEl.className = 'log';
+  logEl.id = 'logEl';
+  results.appendChild(logEl);
+
+  setStatus(true);
+  document.getElementById('runBtn').disabled = true;
+
+  // Close any existing SSE
+  if (eventSource) { eventSource.close(); eventSource = null; }
+
+  // Start scan on server
+  const res = await fetch('/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ module: currentModule, form })
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    appendLog('Fel: ' + (json.error || res.statusText));
+    setStatus(false);
+    document.getElementById('runBtn').disabled = false;
+    return;
+  }
+
+  // Open SSE stream
+  eventSource = new EventSource('/stream');
+  eventSource.onmessage = e => {
+    const data = e.data;
+
+    if (data.startsWith('__FINDINGS__')) {
+      try {
+        findingsData = JSON.parse(data.slice(12));
+        renderFindings(findingsData);
+      } catch {}
+      return;
+    }
+
+    if (data === '__DONE__') {
+      eventSource.close();
+      eventSource = null;
+      setStatus(false);
+      document.getElementById('runBtn').disabled = false;
+      if (!findingsData.length) {
+        const noResult = document.createElement('div');
+        noResult.style.cssText = 'color:var(--muted);font-size:13px;text-align:center;margin-top:20px';
+        noResult.textContent = 'Inga strukturerade fynd — se loggen ovan.';
+        document.getElementById('results').appendChild(noResult);
+      }
+      return;
+    }
+
+    if (data === '__TIMEOUT__') {
+      appendLog('[TIMEOUT] Skanningen tog för lång tid.');
+      eventSource.close();
+      setStatus(false);
+      document.getElementById('runBtn').disabled = false;
+      return;
+    }
+
+    appendLog(data);
+  };
+
+  eventSource.onerror = () => {
+    setStatus(false);
+    document.getElementById('runBtn').disabled = false;
+    if (eventSource) { eventSource.close(); eventSource = null; }
+  };
+}
+
+function appendLog(text) {
+  const el = document.getElementById('logEl');
+  if (!el) return;
+  el.textContent += text + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Render finding cards ──────────────────────────────────────
+function tagClass(section) {
+  const s = section.toLowerCase();
+  if (s.includes('person') || s.includes('folkbok')) return 'tag-person';
+  if (s.includes('company') || s.includes('bolag'))  return 'tag-company';
+  if (s.includes('domain') || s.includes('sub'))     return 'tag-domain';
+  if (s.includes('phone') || s.includes('telefon'))  return 'tag-phone';
+  if (s.includes('email') || s.includes('breach'))   return 'tag-email';
+  if (s.includes('social') || s.includes('github'))  return 'tag-social';
+  if (s.includes('news') || s.includes('nyhet'))     return 'tag-news';
+  if (s.includes('wayback'))                         return 'tag-wayback';
+  return 'tag-default';
+}
+
+function renderFindings(findings) {
+  if (!findings || !findings.length) return;
+
+  // Group by section
+  const grouped = {};
+  findings.forEach(f => {
+    const sec = f.section || 'Övrigt';
+    (grouped[sec] = grouped[sec] || []).push(f);
+  });
+
+  const results = document.getElementById('results');
+
+  Object.entries(grouped).forEach(([section, items]) => {
+    const secDiv = document.createElement('div');
+    secDiv.innerHTML = `<div class="section-title">${section} <span style="color:var(--muted)">(${items.length})</span></div>`;
+
+    const cards = document.createElement('div');
+    cards.className = 'cards';
+
+    items.forEach(item => {
+      const data = item.data || {};
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const tag = tagClass(section);
+      let rows = '';
+      Object.entries(data).forEach(([k, v]) => {
+        if (!v || k.startsWith('_')) return;
+        const disp = String(v);
+        const val = disp.startsWith('http') ? `<a href="${disp}" target="_blank">${disp}</a>` : disp;
+        rows += `<div class="card-row">
+          <span class="card-key">${k}</span>
+          <span class="card-val">${val}</span>
+        </div>`;
+      });
+
+      card.innerHTML = `
+        <div class="card-head">
+          <span class="card-tag ${tag}">${section}</span>
+          <span style="color:var(--muted);font-size:11px">${new Date().toLocaleTimeString('sv-SE')}</span>
+        </div>
+        <div class="card-rows">${rows || '<span style="color:var(--muted);font-size:12px">Inga fält</span>'}</div>`;
+      cards.appendChild(card);
+    });
+
+    secDiv.appendChild(cards);
+    results.appendChild(secDiv);
+  });
+}
+
+// ── Status indicator ──────────────────────────────────────────
+function setStatus(running) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusTxt');
+  dot.className = 'status-dot' + (running ? ' running' : '');
+  txt.textContent = running ? 'Skannar…' : 'Klar';
+}
+
+// ── Save modal ────────────────────────────────────────────────
+function openSaveModal() { document.getElementById('saveModal').classList.add('open') }
+function closeSaveModal() { document.getElementById('saveModal').classList.remove('open') }
+
+async function saveReport(fmt) {
+  closeSaveModal();
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,16);
+  const filename = `pivot_report_${ts}.${fmt}`;
+  const res = await fetch('/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ format: fmt, filename })
+  });
+  const json = await res.json();
+  if (json.ok) {
+    alert('Sparad: ' + json.path);
+  } else {
+    alert('Fel: ' + (json.error || 'Okänt fel'));
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+selectModule('person');
+</script>
+</body>
+</html>
