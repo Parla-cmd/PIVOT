@@ -334,7 +334,7 @@ def run_module(args: argparse.Namespace) -> None:
                                                         "email": args.email})
 
     elif mod == "social":
-        from modules.social_media import run, check_platform, PLATFORMS
+        from modules.social_media import run, check_platform, PLATFORMS, _HIT_STATES
         import concurrent.futures
         run(username=args.username, threads=args.threads)
         if _reporter.active():
@@ -343,10 +343,11 @@ def run_module(args: argparse.Namespace) -> None:
                            for p in PLATFORMS}
                 for future in concurrent.futures.as_completed(futures):
                     r = future.result()
-                    if r.get("found"):
+                    if r.get("state") in _HIT_STATES:
                         _reporter.add("Social Media", {
                             "platform": r["platform"],
                             "url": r["url"],
+                            "state": r["state"],
                             "username": args.username,
                             "source": "username-check",
                         })

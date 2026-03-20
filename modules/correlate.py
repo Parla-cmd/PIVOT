@@ -64,7 +64,7 @@ def _check_username(username: str, threads: int = 12, label: str = "") -> list[d
             futures = {ex.submit(check_platform, username, p): p for p in PLATFORMS}
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
-                if result.get("found") is True:
+                if result.get("state") in ("confirmed", "possible"):
                     found.append(result)
                 progress.update(task, advance=1, found=len(found))
 
