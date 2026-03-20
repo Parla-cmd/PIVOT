@@ -78,6 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Route all requests through proxy. "
              "Examples: socks5h://127.0.0.1:9050  http://127.0.0.1:8080"
     )
+    parser.add_argument(
+        "--api", action="store_true",
+        help="Start the remote control REST API server (default port 8080)"
+    )
+    parser.add_argument(
+        "--api-host", metavar="HOST", default="0.0.0.0",
+        help="Bind host for the API server (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--api-port", metavar="PORT", type=int, default=8080,
+        help="Port for the API server (default: 8080)"
+    )
 
     subparsers = parser.add_subparsers(dest="module", required=False)
 
@@ -423,6 +435,25 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+
+    # Start API server if requested
+    if getattr(args, "api", False):
+        try:
+            import uvicorn
+        except ImportError:
+            console.print("[red]uvicorn not installed. Run: pip install uvicorn[standard][/red]")
+            sys.exit(1)
+        console.print(
+            f"[bold green]Starting PIVOT Remote Control API[/bold green] "
+            f"on http://{args.api_host}:{args.api_port}\n"
+        )
+        uvicorn.run(
+            "api_server:app",
+            host=args.api_host,
+            port=args.api_port,
+            reload=False,
+        )
+        return
 
     # Default to REPL if no subcommand given
     if not args.module:
