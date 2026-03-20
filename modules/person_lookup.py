@@ -83,91 +83,101 @@ def search_eniro(name: str, city: str = "") -> list[dict]:
 
 
 def search_merinfo(name: str) -> list[dict]:
-    """Search merinfo.se — uses Web Components, results limited without browser."""
+    """
+    Search merinfo.se via Playwright — intercepts the HMAC-signed JSON API
+    response that the Vue app fires on page load.
+    """
     results = []
-    query = urllib.parse.quote_plus(name)
-    url = f"https://www.merinfo.se/search?who={query}&what=persons"
-
-    resp = fetch(url)
-    if not resp:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
         return results
 
-    bs = soup(resp)
-    # Merinfo renders via Web Components — extract any embedded JSON
-    for script in bs.find_all("script", type="application/json"):
-        try:
-            import json as _json
-            data = _json.loads(script.string or "")
-            if isinstance(data, list):
-                for item in data[:10]:
-                    if isinstance(item, dict) and item.get("name"):
-                        item["source"] = "merinfo.se"
-                        results.append(item)
-        except Exception:
-            pass
+    import json as _json
+    import re as _re
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"],
+            )
+            ctx = browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
+                locale="sv-SE",
+                viewport={"width": 1280, "height": 900},
+            )
+            page = ctx.new_page()
+
+            api_result: list = []
+
+            def on_response(resp):
+                if "merinfo.se/api/v1/search/results" in resp.url:
+                    try:
+                        data = resp.json()
+                        api_result.append(data)
+                    except Exception:
+                        pass
+
+            page.on("response", on_response)
+
+            query = urllib.parse.quote_plus(name)
+            page.goto(
+                f"https://www.merinfo.se/search?who={query}&what=persons",
+                timeout=25000,
+            )
+            page.wait_for_timeout(5000)
+            browser.close()
+
+        if not api_result:
+            return results
+
+        data = api_result[0]
+        for section in data.get("results", []):
+            for item in section.get("items", [])[:15]:
+                if item.get("type") != "person":
+                    continue
+                # Strip HTML tags from name
+                raw_name = item.get("name", "")
+                clean_name = _re.sub(r"<[^>]+>", "", raw_name)
+                pnr = item.get("personalNumber", "")
+                pnr_clean = _re.sub(r"<[^>]+>", "", pnr)
+
+                # Address may be a list of dicts
+                raw_addr = item.get("address", "")
+                if isinstance(raw_addr, list) and raw_addr:
+                    a = raw_addr[0]
+                    addr_str = f"{a.get('street','')} {a.get('zip_code','')} {a.get('city','')}".strip()
+                else:
+                    addr_str = str(raw_addr) if raw_addr else ""
+
+                entry = {
+                    "name":    clean_name.strip(),
+                    "pnr":     pnr_clean.strip() if pnr_clean.strip() else "",
+                    "address": addr_str,
+                    "phone":   item.get("phoneNumber", "") or item.get("phone", ""),
+                    "source":  "merinfo.se",
+                }
+                entry = {k: v for k, v in entry.items() if v}
+                if entry.get("name"):
+                    results.append(entry)
+
+    except Exception:
+        pass
 
     return results
 
 
 def search_ratsit(name: str) -> list[dict]:
     """
-    Search ratsit.se for a person.
-    Ratsit is one of Sweden's most comprehensive person registries,
-    showing income, tax, address history and board memberships.
-    Note: Site uses heavy JS rendering; scraping returns partial data.
+    Ratsit.se requires login for all searches (Cloudflare Turnstile + account wall).
+    Returns an empty list — included as a placeholder for future authenticated access.
     """
-    results = []
-    query = urllib.parse.quote_plus(name)
-    url = f"https://www.ratsit.se/sok/person?vad={query}"
-
-    resp = fetch(url)
-    if not resp:
-        return results
-
-    bs = soup(resp)
-
-    # Try multiple selectors as ratsit updates their markup
-    cards = bs.select(
-        ".hit, .person, .search-result, [class*='person'], "
-        "[class*='hit'], article, .card"
-    )
-
-    for card in cards[:10]:
-        entry = {}
-        name_el = card.select_one(
-            "h2, h3, h4, [class*='name'], [class*='Name']"
-        )
-        addr_el = card.select_one(
-            "[class*='address'], [class*='Address'], [class*='ort'], address"
-        )
-        age_el = card.select_one(
-            "[class*='age'], [class*='Age'], [class*='born'], [class*='ar']"
-        )
-        income_el = card.select_one(
-            "[class*='income'], [class*='Income'], [class*='inkomst']"
-        )
-        link_el = card.select_one("a[href*='/person/'], a[href*='/foretagare/']")
-
-        if name_el:
-            entry["name"] = name_el.get_text(strip=True)
-        if addr_el:
-            entry["address"] = addr_el.get_text(separator=" ", strip=True)
-        if age_el:
-            entry["age"] = age_el.get_text(strip=True)
-        if income_el:
-            entry["income"] = income_el.get_text(strip=True)
-        if link_el:
-            href = link_el.get("href", "")
-            entry["profile_url"] = (
-                href if href.startswith("http")
-                else f"https://www.ratsit.se{href}"
-            )
-
-        if entry.get("name"):
-            entry["source"] = "ratsit.se"
-            results.append(entry)
-
-    return results
+    return []
 
 
 def run(name: str, city: str = "", personnummer: str = ""):
@@ -192,11 +202,12 @@ def run(name: str, city: str = "", personnummer: str = ""):
     console.print("  [dim]Searching eniro.se (JS-site, partial)...[/dim]")
     all_results += search_eniro(name, city)
 
-    console.print("  [dim]Searching merinfo.se (JS-site, partial)...[/dim]")
-    all_results += search_merinfo(name)
+    console.print("  [dim]Searching merinfo.se (Playwright)...[/dim]")
+    merinfo = search_merinfo(name)
+    all_results += merinfo
+    console.print(f"  [dim]  -> {len(merinfo)} results[/dim]")
 
-    console.print("  [dim]Searching ratsit.se (Cloudflare protected, partial)...[/dim]")
-    all_results += search_ratsit(name)
+    console.print("  [dim]Ratsit.se requires login — skipped.[/dim]")
 
     if not all_results:
         console.print("  [yellow]No results found.[/yellow]")
