@@ -224,7 +224,7 @@ def harvest_from_subdomains(domain: str) -> set[str]:
 
 # ---- main run ---------------------------------------------------------------
 
-def run(domain: str, deep: bool = False):
+def run(domain: str, deep: bool = False) -> None:
     print_section("EMAIL HARVEST")
     domain = domain.lower().lstrip("www.").strip()
     console.print(f"  [dim]Domain:[/dim] [bold]{domain}[/bold]"

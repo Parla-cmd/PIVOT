@@ -184,7 +184,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _target_label(args) -> str:
+def _target_label(args: argparse.Namespace) -> str:
     """Best human-readable label for the current target."""
     for attr in ("target", "name", "email", "phone", "domain", "username", "query"):
         val = getattr(args, attr, "")
@@ -195,7 +195,7 @@ def _target_label(args) -> str:
 
 # ---- module wiring with report collection -----------------------------------
 
-def run_module(args):
+def run_module(args: argparse.Namespace) -> None:
     mod = args.module
 
     if mod == "repl":
@@ -418,7 +418,7 @@ def run_module(args):
 
 # ---- entry point ------------------------------------------------------------
 
-def main():
+def main() -> None:
     print_banner()
 
     parser = build_parser()

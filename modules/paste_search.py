@@ -24,7 +24,7 @@ _GH_HEADERS = {
 }
 
 
-def _gh_token_header() -> dict:
+def _gh_token_header() -> dict[str, str]:
     token = cfg("GITHUB_TOKEN")
     if token:
         return {**_GH_HEADERS, "Authorization": f"Bearer {token}"}
@@ -200,7 +200,7 @@ def _normalize_for_search(target: str) -> list[str]:
 
 # ---- main run ---------------------------------------------------------------
 
-def run(target: str):
+def run(target: str) -> None:
     print_section("PASTE / DATA DUMP SEARCH")
 
     target = target.strip()

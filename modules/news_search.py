@@ -114,7 +114,7 @@ def search_dn(query: str) -> list[dict]:
     return results
 
 
-def run(query: str):
+def run(query: str) -> None:
     print_section("SWEDISH NEWS SEARCH")
     console.print(f"  [dim]Query:[/dim] [bold]{query}[/bold]\n")
 

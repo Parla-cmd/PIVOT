@@ -105,7 +105,7 @@ def search_hitta_foretag(query: str) -> list[dict]:
     return results
 
 
-def run(query: str, org_nr: str = ""):
+def run(query: str, org_nr: str = "") -> None:
     print_section("COMPANY LOOKUP")
     console.print(f"  [dim]Query:[/dim] [bold]{query or org_nr}[/bold]\n")
 

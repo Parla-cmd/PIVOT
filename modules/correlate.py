@@ -20,23 +20,23 @@ from . import reporter
 
 # --- helpers ------------------------------------------------------------------
 
-def _divider(label: str):
+def _divider(label: str) -> None:
     console.print(f"\n  [bold cyan][ {label} ][/bold cyan]")
 
 
-def _info(key: str, value: str):
+def _info(key: str, value: str) -> None:
     console.print(f"    [dim]{key}:[/dim] {value}")
 
 
-def _ok(msg: str):
+def _ok(msg: str) -> None:
     console.print(f"    [bold green][+][/bold green] {msg}")
 
 
-def _warn(msg: str):
+def _warn(msg: str) -> None:
     console.print(f"    [yellow][!][/yellow] {msg}")
 
 
-def _hit(label: str, url: str = ""):
+def _hit(label: str, url: str = "") -> None:
     if url:
         console.print(f"    [green][+] {label}[/green]  [cyan]{url}[/cyan]")
     else:
@@ -96,7 +96,7 @@ def _name_to_usernames(full_name: str) -> list[str]:
 
 # --- phone correlation --------------------------------------------------------
 
-def correlate_phone(phone: str):
+def correlate_phone(phone: str) -> None:
     print_section("PHONE CORRELATION PROFILE")
 
     digits, _ = normalize_phone(phone)
@@ -261,7 +261,7 @@ def correlate_phone(phone: str):
 
 # --- email correlation --------------------------------------------------------
 
-def correlate_email(email: str):
+def correlate_email(email: str) -> None:
     print_section("EMAIL CORRELATION PROFILE")
 
     if not validate_email_format(email):
@@ -451,7 +451,7 @@ def correlate_email(email: str):
 
 # --- auto-detect input type ---------------------------------------------------
 
-def run(target: str):
+def run(target: str) -> None:
     target = target.strip()
     if re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", target):
         correlate_email(target)

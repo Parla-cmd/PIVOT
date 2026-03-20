@@ -19,7 +19,7 @@ console = Console(force_terminal=True, highlight=False, legacy_windows=False)
 _PROXY: dict | None = None
 
 
-def set_proxy(proxy_url: str):
+def set_proxy(proxy_url: str) -> None:
     """
     Set a global proxy for all fetch() calls.
     Examples:
@@ -63,7 +63,7 @@ HEADERS_LIST = [
 ]
 
 
-def get_headers():
+def get_headers() -> dict:
     return random.choice(HEADERS_LIST)
 
 
@@ -96,16 +96,16 @@ def soup(response: requests.Response) -> BeautifulSoup:
     return BeautifulSoup(response.text, "lxml")
 
 
-def print_banner():
+def print_banner() -> None:
     banner = "  Sweden OSINT Tool\n  ==================\n  Educational Use Only\n"
     console.print(Panel(banner, border_style="cyan", style="bold cyan"))
 
 
-def print_section(title: str):
+def print_section(title: str) -> None:
     console.print(f"\n[bold magenta]--- {title} ---[/bold magenta]")
 
 
-def print_result(key: str, value: str, indent: int = 2):
+def print_result(key: str, value: str, indent: int = 2) -> None:
     pad = " " * indent
     console.print(f"{pad}[bold cyan]{key}:[/bold cyan] {value}")
 

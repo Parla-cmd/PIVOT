@@ -105,7 +105,7 @@ def lookup_swedish_county(municipality: str) -> str:
     return county_map.get(municipality, "")
 
 
-def run(address: str = "", lat: str = "", lon: str = ""):
+def run(address: str = "", lat: str = "", lon: str = "") -> None:
     print_section("GEOLOCATION / ADDRESS LOOKUP")
 
     if lat and lon:

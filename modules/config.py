@@ -15,7 +15,7 @@ _ENV_FILE = _ROOT / ".env"
 _loaded: dict[str, str] = {}
 
 
-def load():
+def load() -> None:
     """Load .env into os.environ. Called once at startup."""
     global _loaded
     if not _ENV_FILE.exists():

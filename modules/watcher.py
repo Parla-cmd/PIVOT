@@ -25,7 +25,7 @@ def _state_path(target: str) -> Path:
     return _STATE_DIR / f"{h}.json"
 
 
-def _save_state(target: str, findings: list[dict]):
+def _save_state(target: str, findings: list[dict]) -> Path:
     _STATE_DIR.mkdir(parents=True, exist_ok=True)
     state = {
         "target":    target,
@@ -74,7 +74,7 @@ def _finding_key(row: dict) -> str:
     return json.dumps(filtered, sort_keys=True, ensure_ascii=False)
 
 
-def compute_diff(old: list[dict], new: list[dict]) -> dict:
+def compute_diff(old: list[dict], new: list[dict]) -> dict[str, list[dict]]:
     old_keys = {_finding_key(r) for r in old}
     new_keys = {_finding_key(r) for r in new}
 
@@ -86,7 +86,7 @@ def compute_diff(old: list[dict], new: list[dict]) -> dict:
 
 # ── display diff ──────────────────────────────────────────────────────────────
 
-def _display_diff(diff: dict, old_ts: str):
+def _display_diff(diff: dict[str, list[dict]], old_ts: str) -> None:
     added   = diff["added"]
     removed = diff["removed"]
 
@@ -128,7 +128,7 @@ def _row_summary(row: dict) -> str:
 
 # ── run ───────────────────────────────────────────────────────────────────────
 
-def run(target: str, check: bool = False, output: str = ""):
+def run(target: str, check: bool = False, output: str = "") -> None:
     print_section("WATCHER — CHANGE DETECTION")
     console.print(f"  [dim]Target:[/dim] [bold]{target}[/bold]")
 
@@ -177,7 +177,7 @@ def run(target: str, check: bool = False, output: str = ""):
         )
 
 
-def run_list():
+def run_list() -> None:
     """Print all watched targets."""
     print_section("WATCHER — MONITORED TARGETS")
     targets = list_watched()

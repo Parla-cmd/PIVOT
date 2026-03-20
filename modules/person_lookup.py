@@ -180,7 +180,7 @@ def search_ratsit(name: str) -> list[dict]:
     return []
 
 
-def run(name: str, city: str = "", personnummer: str = ""):
+def run(name: str, city: str = "", personnummer: str = "") -> None:
     print_section("PERSON LOOKUP")
 
     if personnummer and not validate_personnummer(personnummer):

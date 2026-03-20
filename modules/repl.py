@@ -78,7 +78,7 @@ class PivotRepl(cmd.Cmd):
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
-    def _run_with_args(self, line: str, module_name: str):
+    def _run_with_args(self, line: str, module_name: str) -> None:
         """Build a fake argparse Namespace and call the appropriate module."""
         import argparse
         from main import build_parser, run_module
@@ -116,20 +116,20 @@ class PivotRepl(cmd.Cmd):
 
     # ── module commands ───────────────────────────────────────────────────────
 
-    def do_person(self, line):    self._run_with_args(line, "person")
-    def do_company(self, line):   self._run_with_args(line, "company")
-    def do_phone(self, line):     self._run_with_args(line, "phone")
-    def do_email(self, line):     self._run_with_args(line, "email")
-    def do_domain(self, line):    self._run_with_args(line, "domain")
-    def do_social(self, line):    self._run_with_args(line, "social")
-    def do_news(self, line):      self._run_with_args(line, "news")
-    def do_geo(self, line):       self._run_with_args(line, "geo")
-    def do_github(self, line):    self._run_with_args(line, "github")
-    def do_harvest(self, line):   self._run_with_args(line, "harvest")
-    def do_paste(self, line):     self._run_with_args(line, "paste")
-    def do_correlate(self, line): self._run_with_args(line, "correlate")
+    def do_person(self, line: str) -> None:    self._run_with_args(line, "person")
+    def do_company(self, line: str) -> None:   self._run_with_args(line, "company")
+    def do_phone(self, line: str) -> None:     self._run_with_args(line, "phone")
+    def do_email(self, line: str) -> None:     self._run_with_args(line, "email")
+    def do_domain(self, line: str) -> None:    self._run_with_args(line, "domain")
+    def do_social(self, line: str) -> None:    self._run_with_args(line, "social")
+    def do_news(self, line: str) -> None:      self._run_with_args(line, "news")
+    def do_geo(self, line: str) -> None:       self._run_with_args(line, "geo")
+    def do_github(self, line: str) -> None:    self._run_with_args(line, "github")
+    def do_harvest(self, line: str) -> None:   self._run_with_args(line, "harvest")
+    def do_paste(self, line: str) -> None:     self._run_with_args(line, "paste")
+    def do_correlate(self, line: str) -> None: self._run_with_args(line, "correlate")
 
-    def do_folkbok(self, line):
+    def do_folkbok(self, line: str) -> None:
         try:
             parts = shlex.split(line)
         except ValueError as e:
@@ -149,7 +149,7 @@ class PivotRepl(cmd.Cmd):
         from modules.folkbokforing import run_person
         run_person(name=a.name, city=a.city)
 
-    def do_vehicle(self, line):
+    def do_vehicle(self, line: str) -> None:
         try:
             parts = shlex.split(line)
         except ValueError as e:
@@ -168,7 +168,7 @@ class PivotRepl(cmd.Cmd):
         from modules.folkbokforing import run_vehicle
         run_vehicle(plate=a.plate)
 
-    def do_wayback(self, line):
+    def do_wayback(self, line: str) -> None:
         try:
             parts = shlex.split(line)
         except ValueError as e:
@@ -189,7 +189,7 @@ class PivotRepl(cmd.Cmd):
         from modules.wayback import run
         run(url=url, limit=a.limit)
 
-    def do_watch(self, line):
+    def do_watch(self, line: str) -> None:
         try:
             parts = shlex.split(line)
         except ValueError as e:
@@ -214,7 +214,7 @@ class PivotRepl(cmd.Cmd):
 
     # ── utility commands ──────────────────────────────────────────────────────
 
-    def do_proxy(self, line):
+    def do_proxy(self, line: str) -> None:
         """proxy <url>  |  proxy off"""
         line = line.strip()
         if not line or line.lower() == "off":
@@ -223,7 +223,7 @@ class PivotRepl(cmd.Cmd):
         else:
             set_proxy(line)
 
-    def do_output(self, line):
+    def do_output(self, line: str) -> None:
         """output <file.html|file.json>  |  output off"""
         line = line.strip()
         if not line or line.lower() == "off":
@@ -233,7 +233,7 @@ class PivotRepl(cmd.Cmd):
             self._output_file = line
             console.print(f"  [dim]Output file set: [bold]{line}[/bold][/dim]")
 
-    def do_graph(self, line):
+    def do_graph(self, line: str) -> None:
         """graph <output.html>  — export graph from current session's reporter data"""
         path = line.strip()
         if not path:
@@ -246,31 +246,31 @@ class PivotRepl(cmd.Cmd):
             return
         build_from_reporter(findings, path, target="REPL session")
 
-    def do_clear(self, _):
+    def do_clear(self, _: str) -> None:
         """Clear the terminal screen."""
         import os
         os.system("cls" if sys.platform == "win32" else "clear")
 
-    def do_help(self, _):
+    def do_help(self, _: str) -> None:
         console.print(HELP_TEXT)
 
-    def do_exit(self, _):
+    def do_exit(self, _: str) -> bool:
         console.print("\n  [dim]Goodbye.[/dim]\n")
         return True
 
-    def do_quit(self, line):
+    def do_quit(self, line: str) -> bool:
         return self.do_exit(line)
 
-    def default(self, line):
+    def default(self, line: str) -> None:
         console.print(f"  [red]Unknown command:[/red] [bold]{line.split()[0]}[/bold]  "
                       f"(type [bold]help[/bold])")
 
     # ── prevent crash on Ctrl+D ────────────────────────────────────────────────
-    def do_EOF(self, _):
+    def do_EOF(self, _: str) -> bool:
         return self.do_exit(_)
 
 
-def run():
+def run() -> None:
     console.print(BANNER)
     try:
         PivotRepl().cmdloop()

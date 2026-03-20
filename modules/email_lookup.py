@@ -111,7 +111,7 @@ def get_results(email: str) -> dict:
     }
 
 
-def run(email: str):
+def run(email: str) -> None:
     print_section("EMAIL LOOKUP")
 
     if not validate_email_format(email):

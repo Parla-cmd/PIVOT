@@ -32,7 +32,7 @@ if _TOKEN:
     _HEADERS["Authorization"] = f"Bearer {_TOKEN}"
 
 
-def _get(endpoint: str, params: dict = None) -> dict | list | None:
+def _get(endpoint: str, params: dict | None = None) -> dict | list | None:
     url = f"{GITHUB_API}{endpoint}"
     try:
         resp = requests.get(url, headers=_HEADERS, params=params, timeout=12)
@@ -53,7 +53,7 @@ def _get(endpoint: str, params: dict = None) -> dict | list | None:
 
 
 def _search(endpoint: str, q: str, per_page: int = 10,
-            extra_params: dict = None) -> list:
+            extra_params: dict | None = None) -> list[dict]:
     params = {"q": q, "per_page": per_page, **(extra_params or {})}
     data = _get(endpoint, params)
     if data and isinstance(data, dict):
@@ -67,22 +67,22 @@ def get_user_profile(username: str) -> dict | None:
     return _get(f"/users/{username}")
 
 
-def search_users(query: str) -> list:
+def search_users(query: str) -> list[dict]:
     return _search("/search/users", query)
 
 
-def get_user_repos(username: str, limit: int = 10) -> list:
+def get_user_repos(username: str, limit: int = 10) -> list[dict]:
     data = _get(f"/users/{username}/repos",
                 {"sort": "updated", "per_page": limit})
     return data if isinstance(data, list) else []
 
 
-def get_user_gists(username: str) -> list:
+def get_user_gists(username: str) -> list[dict]:
     data = _get(f"/users/{username}/gists", {"per_page": 5})
     return data if isinstance(data, list) else []
 
 
-def search_commits_by_email(email: str) -> list:
+def search_commits_by_email(email: str) -> list[dict]:
     """
     Search commits authored by a specific email.
     This can reveal GitHub accounts behind any email address.
@@ -95,48 +95,48 @@ def search_commits_by_email(email: str) -> list:
     return items
 
 
-def search_commits_by_name(name: str) -> list:
+def search_commits_by_name(name: str) -> list[dict]:
     items = _search("/search/commits", f"author-name:{name}")
     time.sleep(0.5)
     return items
 
 
-def search_code(query: str) -> list:
+def search_code(query: str) -> list[dict]:
     """Search code for an email address, phone number, or other string."""
     items = _search("/search/code", query, per_page=5)
     time.sleep(0.5)
     return items
 
 
-def search_issues(query: str) -> list:
+def search_issues(query: str) -> list[dict]:
     return _search("/search/issues", f"{query} type:issue", per_page=5)
 
 
-def search_repos(query: str) -> list:
+def search_repos(query: str) -> list[dict]:
     return _search("/search/repositories", query, per_page=5)
 
 
 # ---- rendering helpers ------------------------------------------------------
 
-def _divider(label: str):
+def _divider(label: str) -> None:
     console.print(f"\n  [bold cyan][ {label} ][/bold cyan]")
 
 
-def _ok(msg: str):
+def _ok(msg: str) -> None:
     console.print(f"    [bold green][+][/bold green] {safe(msg)}")
 
 
-def _info(key: str, val: str):
+def _info(key: str, val: str) -> None:
     console.print(f"    [dim]{key}:[/dim] {safe(str(val))}")
 
 
-def _muted(msg: str):
+def _muted(msg: str) -> None:
     console.print(f"  [dim]  {msg}[/dim]")
 
 
 # ---- main run ---------------------------------------------------------------
 
-def run(username: str = "", email: str = "", name: str = ""):
+def run(username: str = "", email: str = "", name: str = "") -> None:
     print_section("GITHUB OSINT")
 
     if not any([username, email, name]):

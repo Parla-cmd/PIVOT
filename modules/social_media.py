@@ -110,7 +110,7 @@ def check_username_with_progress(username: str, threads: int = 10,
     return found, not_found, errors
 
 
-def run(username: str, threads: int = 10):
+def run(username: str, threads: int = 10) -> None:
     print_section("USERNAME / SOCIAL MEDIA SEARCH")
     console.print(f"  [dim]Username:[/dim] [bold]{username}[/bold]  "
                   f"[dim]Checking {len(PLATFORMS)} platforms...[/dim]\n")

@@ -46,7 +46,7 @@ _SHAPES = {
 }
 
 
-def _node_style(kind: str) -> dict:
+def _node_style(kind: str) -> dict[str, object]:
     color = _COLORS.get(kind, _COLORS["default"])
     shape = _SHAPES.get(kind, _SHAPES["default"])
     return {"color": color, "shape": shape, "font": {"color": "#ffffff", "size": 14}}
@@ -64,18 +64,18 @@ class OsintGraph:
     def _node_id(self, kind: str, value: str) -> str:
         return f"{kind}::{value.lower().strip()}"
 
-    def add_node(self, kind: str, value: str, tooltip: str = ""):
+    def add_node(self, kind: str, value: str, tooltip: str = "") -> str:
         nid = self._node_id(kind, value)
         if nid not in self._nodes:
             self._nodes[nid] = {"label": value, "kind": kind, "title": tooltip or value}
         return nid
 
-    def add_edge(self, src_id: str, dst_id: str, label: str = ""):
+    def add_edge(self, src_id: str, dst_id: str, label: str = "") -> None:
         edge = (src_id, dst_id, label)
         if edge not in self._edges:
             self._edges.append(edge)
 
-    def link(self, kind_a: str, val_a: str, kind_b: str, val_b: str, label: str = ""):
+    def link(self, kind_a: str, val_a: str, kind_b: str, val_b: str, label: str = "") -> None:
         if not val_a or not val_b:
             return
         a = self.add_node(kind_a, val_a)
@@ -84,7 +84,7 @@ class OsintGraph:
 
     # ── feed from reporter data ────────────────────────────────────────────────
 
-    def ingest_reporter(self, findings: list[dict]):
+    def ingest_reporter(self, findings: list[dict]) -> None:
         """
         Walk through all reporter findings and build graph edges.
         The reporter stores rows like: {"_section": "...", "key": "value", ...}

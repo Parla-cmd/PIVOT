@@ -107,7 +107,7 @@ def lookup_iis_se(domain: str) -> dict:
 def ip_geolocation(ip: str) -> dict:
     """Free IP geolocation via ip-api.com."""
     result = {}
-    resp = fetch(f"http://ip-api.com/json/{ip}?fields=country,regionName,city,isp,org,as,query")
+    resp = fetch(f"https://ip-api.com/json/{ip}?fields=country,regionName,city,isp,org,as,query")
     if resp:
         try:
             data = resp.json()
@@ -146,7 +146,7 @@ def lookup_crt_sh(domain: str) -> list[str]:
     return sorted(subdomains)
 
 
-def run(domain: str):
+def run(domain: str) -> None:
     print_section("DOMAIN / IP LOOKUP")
     console.print(f"  [dim]Target:[/dim] [bold]{domain}[/bold]\n")
 

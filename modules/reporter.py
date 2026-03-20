@@ -14,17 +14,17 @@ from typing import Any
 _instance: "Report | None" = None
 
 
-def init(target: str = ""):
+def init(target: str = "") -> None:
     global _instance
     _instance = Report(target)
 
 
-def add(section: str, data: dict):
+def add(section: str, data: dict) -> None:
     if _instance:
         _instance.add(section, data)
 
 
-def save(path: str):
+def save(path: str) -> None:
     if _instance:
         _instance.save(path)
 
@@ -33,7 +33,7 @@ def active() -> bool:
     return _instance is not None
 
 
-def reset():
+def reset() -> None:
     """Clear current report instance (used between GUI scans)."""
     global _instance
     _instance = None
@@ -58,7 +58,7 @@ class Report:
         self.timestamp = datetime.now().isoformat(timespec="seconds")
         self._sections: dict[str, list[dict]] = {}
 
-    def add(self, section: str, data: dict):
+    def add(self, section: str, data: dict) -> None:
         self._sections.setdefault(section, []).append(data)
 
     def to_dict(self) -> dict:
@@ -69,7 +69,7 @@ class Report:
             "sections": self._sections,
         }
 
-    def save(self, path: str):
+    def save(self, path: str) -> None:
         if path.endswith(".json"):
             self._save_json(path)
         elif path.endswith(".html"):
@@ -80,14 +80,14 @@ class Report:
 
     # ---- JSON ---------------------------------------------------------------
 
-    def _save_json(self, path: str):
+    def _save_json(self, path: str) -> None:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=2, default=str)
         print(f"\n  [Report] Saved JSON -> {path}")
 
     # ---- HTML ---------------------------------------------------------------
 
-    def _save_html(self, path: str):
+    def _save_html(self, path: str) -> None:
         body_parts = []
         for section, findings in self._sections.items():
             rows = ""

@@ -17,17 +17,17 @@ from . import reporter as _reporter
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
-def _ok(msg: str):
+def _ok(msg: str) -> None:
     console.print(f"    [green][+][/green] {safe(msg)}")
 
-def _warn(msg: str):
+def _warn(msg: str) -> None:
     console.print(f"    [yellow][!][/yellow] {safe(msg)}")
 
-def _info(key: str, val: str):
+def _info(key: str, val: str) -> None:
     if val:
         console.print(f"    [dim]{key}:[/dim] {safe(val)}")
 
-def _divider(label: str):
+def _divider(label: str) -> None:
     console.print(f"\n  [bold cyan][ {label} ][/bold cyan]")
 
 
@@ -186,7 +186,7 @@ def lookup_vehicle(reg_plate: str) -> dict:
 
 # ── Main run ───────────────────────────────────────────────────────────────────
 
-def run_person(name: str, city: str = "", personnummer: str = ""):
+def run_person(name: str, city: str = "", personnummer: str = "") -> None:
     """Full folkbokföring lookup for a person."""
     print_section("FOLKBOKFÖRING / SWEDISH PUBLIC REGISTRY")
     console.print(f"  [dim]Name:[/dim] [bold]{name}[/bold]"
@@ -264,7 +264,7 @@ def run_person(name: str, city: str = "", personnummer: str = ""):
         console.print("  [dim]  No data returned from Kronofogden.[/dim]")
 
 
-def run_vehicle(plate: str):
+def run_vehicle(plate: str) -> None:
     """Vehicle registration plate lookup."""
     print_section(f"FORDONSREGISTRET — {plate}")
     console.print("  [dim]Looking up via Transportstyrelsen / Biluppgifter...[/dim]")

@@ -131,7 +131,7 @@ def get_results(phone: str) -> list[dict]:
     return unique
 
 
-def run(phone: str):
+def run(phone: str) -> None:
     print_section("PHONE LOOKUP")
     digits, _ = normalize_phone(phone)
     phone_type = classify_phone(phone)
