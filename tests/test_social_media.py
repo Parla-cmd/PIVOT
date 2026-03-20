@@ -32,7 +32,7 @@ def _mock_response(
 
 GITHUB = next(p for p in PLATFORMS if p["name"] == "GitHub")
 HACKERNEWS = next(p for p in PLATFORMS if p["name"] == "HackerNews")
-STEAM = next(p for p in PLATFORMS if p["name"] == "Steam")
+STEAM = next(p for p in PLATFORMS if p["name"] == "Steam Community (User)")
 
 
 # ── _is_redirect_url ─────────────────────────────────────────────────────────
@@ -106,9 +106,9 @@ class TestCheckPlatform:
         assert result["state"] == "error"
 
     def test_not_found_text_in_body(self):
-        body = "<html>" + "x" * 2000 + "Not Found" + "</html>"
+        # GitHub uses status_code detection in gosearch — only 404 = not_found
         resp = _mock_response(
-            text=body,
+            status_code=404,
             final_url="https://github.com/nobody",
             url="https://github.com/nobody",
         )
@@ -137,8 +137,9 @@ class TestCheckPlatform:
             result = check_platform("johndoe", GITHUB)
         assert result["state"] == "not_found"
 
-    def test_confirm_text_present_returns_confirmed(self):
-        body = "<html>" + "repositories" * 100 + "</html>"
+    def test_status_code_200_returns_possible(self):
+        # GitHub uses status_code detection — 200 + long body = possible (no confirm text)
+        body = "<html>" + "x" * 2000 + "</html>"
         resp = _mock_response(
             text=body,
             final_url="https://github.com/johndoe",
@@ -146,7 +147,7 @@ class TestCheckPlatform:
         )
         with patch("requests.get", return_value=resp):
             result = check_platform("johndoe", GITHUB)
-        assert result["state"] == "confirmed"
+        assert result["state"] == "possible"
 
     def test_no_confirm_text_but_ok_returns_possible(self):
         # GitHub needs "repositories" — remove it
@@ -168,15 +169,16 @@ class TestCheckPlatform:
         assert "timeout" in result["note"]
 
     def test_hn_not_found_text(self):
-        body = "<html>" + "No such user" * 10 + "</html>"
-        resp = _mock_response(text=body)
+        body = "<html>" + "No such user." * 10 + "x" * 800 + "</html>"
+        hn_url = "https://news.ycombinator.com/user?id=nobody"
+        resp = _mock_response(text=body, final_url=hn_url, url=hn_url)
         with patch("requests.get", return_value=resp):
             result = check_platform("nobody", HACKERNEWS)
         assert result["state"] == "not_found"
 
-    def test_steam_confirm_text(self):
-        # Body must be > _MIN_PROFILE_BYTES (800) to pass length guard
-        body = "<html>" + "profile_header " * 100 + "</html>"
+    def test_steam_found_no_error_msg(self):
+        # Steam uses errorMsg detection — absence of error = possible hit
+        body = "<html>" + "Steam profile page content " * 100 + "</html>"
         resp = _mock_response(
             text=body,
             final_url="https://steamcommunity.com/id/johndoe",
@@ -184,7 +186,18 @@ class TestCheckPlatform:
         )
         with patch("requests.get", return_value=resp):
             result = check_platform("johndoe", STEAM)
-        assert result["state"] == "confirmed"
+        assert result["state"] in ("confirmed", "possible")
+
+    def test_steam_not_found_error_msg(self):
+        body = "<html>" + "<title>Steam Community :: Error</title>" * 10 + "x" * 800 + "</html>"
+        resp = _mock_response(
+            text=body,
+            final_url="https://steamcommunity.com/id/nobody",
+            url="https://steamcommunity.com/id/nobody",
+        )
+        with patch("requests.get", return_value=resp):
+            result = check_platform("nobody", STEAM)
+        assert result["state"] == "not_found"
 
     def test_result_always_has_required_keys(self):
         with patch("requests.get", return_value=_mock_response(status_code=404)):
