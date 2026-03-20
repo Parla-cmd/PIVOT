@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+
+# Reports / output
+*.html
+*.json
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+test_report.*
+out.*
+corr_test.*
