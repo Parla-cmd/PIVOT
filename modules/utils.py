@@ -6,6 +6,7 @@ import time
 import random
 import warnings
 import requests
+import cloudscraper
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 from rich.console import Console
@@ -66,12 +67,18 @@ def get_headers():
     return random.choice(HEADERS_LIST)
 
 
-def fetch(url: str, timeout: int = 10, retries: int = 2) -> requests.Response | None:
-    """GET request with retry logic, polite delay, and optional proxy."""
+# Shared cloudscraper session — bypasses TLS fingerprinting & Cloudflare challenges
+_scraper = cloudscraper.create_scraper(
+    browser={"browser": "chrome", "platform": "windows", "mobile": False}
+)
+
+
+def fetch(url: str, timeout: int = 12, retries: int = 2) -> requests.Response | None:
+    """GET request with cloudscraper (bot-bypass), retry logic and optional proxy."""
     for attempt in range(retries):
         try:
-            time.sleep(random.uniform(0.5, 1.5))
-            resp = requests.get(
+            time.sleep(random.uniform(0.8, 2.0))
+            resp = _scraper.get(
                 url,
                 headers=get_headers(),
                 timeout=timeout,
@@ -79,7 +86,7 @@ def fetch(url: str, timeout: int = 10, retries: int = 2) -> requests.Response | 
             )
             resp.raise_for_status()
             return resp
-        except requests.RequestException as e:
+        except Exception as e:
             if attempt == retries - 1:
                 console.print(f"  [yellow]Warning:[/yellow] Could not reach {url} -- {e}")
     return None

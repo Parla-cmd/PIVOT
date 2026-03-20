@@ -12,3 +12,4 @@ pyvis>=0.3.2
 pyreadline3>=3.4.1; sys_platform == "win32"
 # SOCKS proxy support (for Tor)
 PySocks>=1.7.1
+cloudscraper>=1.2.71
